@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import connection
+from django.views.generic import TemplateView
 import datetime
 
 # debugging middleware which is extremely useful
@@ -38,3 +39,22 @@ class SculptDebugMiddleware(object):
             print '====================='
 
         return response
+
+# a simple view that dumps the request;
+# use with the dump-request template
+# NOTE: this automatically disables itself if you
+# aren't running in DEBUG mode; you can override
+# this, but then YOU MUST TAKE CARE to disable this
+# in your production environment
+class DebugTemplateView(TemplateView):
+    template_name = "sculpt_debug/dump_request.html"
+    always_enabled = False
+
+    def get_context_data(self, **kwargs):
+        kwargs = super(DebugTemplateView, self).get_context_data(**kwargs)
+        if self.always_enabled or settings.DEBUG:
+            kwargs['data'] = {
+                    'request': self.request,
+                    'settings': settings,
+                }
+        return kwargs
