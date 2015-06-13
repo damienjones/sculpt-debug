@@ -14,6 +14,8 @@ class SculptDebugMiddleware(object):
     date_request_started = None
 
     def process_request(self, request):
+        if settings.SCULPT_DUMP_SQL or settings.SCULPT_DUMP_SESSION or settings.SCULPT_DUMP_REQUESTS:
+            print '==== REQUEST START: %s %s' % (request.method, request.META['RAW_URI'] if 'RAW_URI' in request.META else request.META['PATH_INFO'])
         self.date_request_started = datetime.datetime.utcnow()
 
     def process_response(self, request, response):
@@ -34,7 +36,7 @@ class SculptDebugMiddleware(object):
 
         if settings.SCULPT_DUMP_SESSION:
             import json
-            print '==== SESSION ========'
+            print '==== SESSION ========', '(modified)' if request.session.modified else ''
             print json.dumps(request.session._session)
             print '====================='
 
