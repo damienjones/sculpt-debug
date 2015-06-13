@@ -68,7 +68,7 @@ def pydump_core(value, field_name, fragments, seen_names, seen_objects, trap_exc
 
     # determine the parent name
     parent_name = '.'.join(seen_names)
-    #print parent_name
+    #print 'item:', parent_name
 
     # make a valiant attempt to display the item's contents
     try:
@@ -189,7 +189,7 @@ def pydump_core(value, field_name, fragments, seen_names, seen_objects, trap_exc
         # object's control and might include pseudo-properties that are
         # not real, so we look at __dict__ instead
         else:
-            #print 'object'
+            #print 'object', (value.__dict__.keys() if hasattr(value, '__dict__') else '-')
             fragments.append(u'<table class="sc_dbg_object"><tbody>')
             if hasattr(value, '__class__'):
                 # title with class name, ID, and MRO
@@ -199,13 +199,17 @@ def pydump_core(value, field_name, fragments, seen_names, seen_objects, trap_exc
                     # some old classes lack this
                     _mro = 'no MRO available for this class'
                 fragments.append(u'<tr><td class="sc_dbg_key sc_dbg_title" title="%(mro)s" colspan="2">%(class_name)s id:0x%(id)x</td></tr>' % { 'class_name': value.__class__.__name__, 'mro': _mro, 'id': id(value) })
+                #print 'object post-MRO', (value.__dict__.keys() if hasattr(value, '__dict__') else '-')
 
                 # method and property values: to understand how these
                 # work, have a look in the Python docs for the inspect
                 # module: https://docs.python.org/2/library/inspect.html
 
+                # updated: see further explanation at safe_dir, below
+                cached_fields = safe_dir(value)
+
                 # method members (we always check)
-                methods = inspect.getmembers(value, inspect.ismethod)
+                methods = safe_dir_filter(cached_fields, inspect.ismethod)
 
                 # only emit methods item if we have some
                 if len(methods):
@@ -215,6 +219,7 @@ def pydump_core(value, field_name, fragments, seen_names, seen_objects, trap_exc
                         fragments.append(u'<tr><td class="sc_dbg_key" title="%(parent).%(key)s">%(key)s</td><td class="sc_dbg_value">id:0x%(id)x</td></tr>' % { 'parent': parent_name, 'key': str(k), 'id': id(v) })
                     fragments.append(u'</tbody></table>')
                     fragments.append(u'</td></tr>')
+                #print 'object post-methods', (value.__dict__.keys() if hasattr(value, '__dict__') else '-')
 
                 # property members (we always check)
                 # properties can only be found by looking at the base
@@ -225,7 +230,7 @@ def pydump_core(value, field_name, fragments, seen_names, seen_objects, trap_exc
                 else:
                     test_value = value.__class__
 
-                properties = inspect.getmembers(test_value, lambda x: inspect.isdatadescriptor(x) and isinstance(x, property))
+                properties = safe_dir(test_value, lambda x: inspect.isdatadescriptor(x) and isinstance(x, property))
                 
                 # only emit properties item if we have some
                 if len(properties):
@@ -235,12 +240,14 @@ def pydump_core(value, field_name, fragments, seen_names, seen_objects, trap_exc
                         fragments.append(u'<tr><td class="sc_dbg_key" title="%(parent).%(key)s">%(key)s</td><td class="sc_dbg_value">id:0x%(id)x</td></tr>' % { 'parent': parent_name, 'key': str(k), 'id': id(v) })
                     fragments.append(u'</tbody></table>')
                     fragments.append(u'</td></tr>')
+                #print 'object post-properties', (value.__dict__.keys() if hasattr(value, '__dict__') else '-')
 
                 # attributes
                 if hasattr(value, '__dict__'):
                     if len(value.__dict__):
                         # data members, if we have them (some classes don't)
                         for k,v in value.__dict__.iteritems():
+                            #print k, k.__class__.__name__, value.__dict__.keys()
                             # special test: skip callable members, if present
                             # (normally not included in __dict__)
                             if not callable(v):
@@ -263,6 +270,18 @@ def pydump_core(value, field_name, fragments, seen_names, seen_objects, trap_exc
         #print '%(class_name)s: %(message)s' % { 'class_name': e.__class__.__name__, 'message': str(e) }
         if trap_exceptions:
             fragments.append(u'<span class="sc_debug_error">%(class_name)s: %(message)s</span>' % { 'class_name': e.__class__.__name__, 'message': str(e) })
+
+            # an exception during the debug display is pretty rare; go ahead
+            # and spit out the backtrace to the console so we can figure it
+            # out
+
+            # sys.exc_info() returns a tuple (type, exception object, stack trace)
+            # traceback.format_exception() formats the result in plain text, as a list of strings
+            import sys
+            import traceback
+            backtrace_text = ''.join(traceback.format_exception(*sys.exc_info()))
+            print backtrace_text
+
         else:
             # we were politely asked not to handle these, re-raise it
             raise
@@ -270,3 +289,79 @@ def pydump_core(value, field_name, fragments, seen_names, seen_objects, trap_exc
     seen_names.pop()    # can't use foo = foo[:-1] because that makes a new list and saves its reference; we need to modify the existing list
     seen_objects.pop()
     
+def safe_dir(obj, predicate = None):
+    '''
+    "Safely" obtain a list of attributes for an
+    # object.
+
+    Python's dynamic properties are incredibly useful
+    but there's a serious lack of good introspection
+    tools. Python provides an inspect module which does
+    introspection, but at its heart it relies on dir()
+    and getattr(), both of which can be overridden by
+    classes.
+
+    Django of course overrides both of these, which
+    means using Python's "proper" introspection class
+    will change the object we're trying to display.
+    Worse, if you have models with circular references,
+    attempting to recursively introspect anything that
+    touches the circular reference will trigger an
+    infinite recursion loop, crashing the application.
+
+    In particular, the trigger for this seems to be
+    the use of getattr() inside the inspect.getmembers()
+    method. To work around this, we access the object's
+    native properties dict.
+
+    Unfortunately, using the raw __dict__ will fail
+    because it doesn't account for base class properties,
+    methods, or anything else fancy. So this function
+    attempts to enumerate all of those items. Like the
+    inspect.getmembers() call, we accept a predicate
+    which will be used to filter the results.
+    '''
+
+    # safely get all the classes we need to look at
+    obj_mro = [ obj ]
+    if hasattr(obj.__class__, '__mro__'):
+        obj_mro.extend(obj.__class__.__mro__)
+    else:
+        obj_mro.extend(obj.__class__)
+
+    # a set of attributes we will test
+    found_attrs = {}
+
+    if hasattr(obj, '__dict__'):
+        for c in obj_mro:
+            # if hasattr(c, '__name__'):
+            #     debug_name = c.__name__
+            # else:
+            #     debug_name = c.__class__.__name__ + ' instance'
+            # print 'MRO item:', debug_name
+
+            if hasattr(c, '__dict__'):
+                keylist = c.__dict__.keys()
+                for k in keylist:
+                    if k not in found_attrs:
+                        try:
+                            v = obj.__dict__[k]
+                        except KeyError: #, AttributeError:
+                            # so actually AttributeError should
+                            # never happen, but it seems a few
+                            # classes will actually report they
+                            # have the __dict__ attribute and
+                            # then throw an AttributeError when
+                            # you try to access it
+                            continue
+                        if predicate is None or predicate(v):
+                            found_attrs[k] = v
+                # print len(keylist), len(c.__dict__.keys())
+                # print 'before:', keylist
+                # print ' after:', c.__dict__.keys()
+
+    return sorted(found_attrs.items(), lambda a,b: cmp(a[0],b[0]))
+
+def safe_dir_filter(cached_fields, predicate):
+    # filter a cached set of fetched fields
+    return [ t for t in cached_fields if predicate(t[1]) ]
