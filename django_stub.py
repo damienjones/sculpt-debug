@@ -4,4 +4,10 @@
 
 def escape(value):
     return value.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#39;')
-    
+   
+# a stub class which yields None for all attributes
+class FakeSettings(object):
+    def __getattr__(self, attr):
+        return None
+
+settings = FakeSettings()

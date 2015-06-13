@@ -6,10 +6,11 @@
 try:
     # see if we have Django first
     from django import template
+    from django.conf import settings
     from django.utils.html import escape
     from django.utils.safestring import mark_safe
 except ImportError:
-    from sculpt.debug.django_stub import escape
+    from sculpt.debug.django_stub import escape, settings
     template = None
     mark_safe = lambda x: x  # a no-op function
 import decimal
@@ -61,6 +62,13 @@ def pydump_core(value, field_name, fragments, seen_names, seen_objects, trap_exc
         fragments.append(u'(recursive array reference to level %d, element %s)' % (i+1, '.'.join(seen_names[:i+1])))
         return
 
+    # similarly, some items may be in our prohibited list
+    # and we don't want to show those
+    full_class_name = value.__class__.__module__+'.'+value.__class__.__name__
+    if settings.SCULPT_DEBUG_SKIP_CLASSES is not None and full_class_name in settings.SCULPT_DEBUG_SKIP_CLASSES:
+        fragments.append(u'(skipping object of type %s)' % full_class_name)
+        return
+
     # otherwise, push ourselves onto the stack in case we
     # need to recurse
     seen_names.append(field_name)
@@ -68,7 +76,7 @@ def pydump_core(value, field_name, fragments, seen_names, seen_objects, trap_exc
 
     # determine the parent name
     parent_name = '.'.join(seen_names)
-    #print 'item:', parent_name
+    #print 'item:', parent_name, full_class_name
 
     # make a valiant attempt to display the item's contents
     try:
