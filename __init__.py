@@ -20,7 +20,7 @@ class SculptDebugMiddleware(object):
         if settings.SCULPT_DUMP_SQL or settings.SCULPT_DUMP_SESSION or settings.SCULPT_DUMP_REQUESTS:
             if self.date_request_started != None:
                 elapsed_time = (datetime.datetime.utcnow() - self.date_request_started).total_seconds()
-                print '==== REQUEST TIME: %s %.3fs %s' % (request.method, elapsed_time, request.META['RAW_URI'])
+                print '==== REQUEST TIME: %s %.3fs %s' % (request.method, elapsed_time, request.META['RAW_URI'] if 'RAW_URI' in request.META else request.META['PATH_INFO'])
 
         if settings.SCULPT_DUMP_SQL:
             print '==== SQL QUERIES ===='
