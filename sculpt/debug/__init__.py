@@ -7,8 +7,26 @@ import datetime
 #
 # settings:
 #
-#   SCULPT_DUMP_SQL     whether to dump data on all SQL queries made during a request, as well as request timing
-
+#   SCULPT_DUMP_REQUESTS    write information about requests to stdout; useful
+#                           if you're running in an environment that captures
+#                           it to a place you can watch. This setting is implied
+#                           if any of the other SCULPT_DUMP_* settings are on.
+#
+#   SCULPT_DUMP_SQL         write all SQL queries to stdout along with the time
+#                           taken for the query. Note that this list is kept by
+#                           Django internals, so the dump happens at the end of
+#                           the request, not as each request is happening. Also,
+#                           Django only records times in milliseconds, which is
+#                           not all that useful; you may find it worthwhile to
+#                           patch Django's timekeeping code to record times in
+#                           microseconds instead.
+#
+#   SCULPT_DUMP_SESSION     write session data to stdout at the end of each
+#                           request.
+#
+# Best practice is that all of these are False in production as they can reveal
+# sensitive information that is not normally left in a log file.
+#
 class SculptDebugMiddleware(object):
 
     date_request_started = None
