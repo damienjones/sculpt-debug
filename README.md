@@ -14,10 +14,12 @@ There are a lot of great debugging frameworks for Django. This one is extremely 
     * Collapse and expand.
     * Intended for looking inside complex objects.
 
+Some of Django's objects are very, very deeply linked. Classes can be added to a blacklist that prevents expansion so that requests can complete in a reasonable amount of time.
+
 Special Note
 ------------
 
-This is not a complete project. It's not packaged as a Python project (so you have to drop the source into your own project directly), the directory structure doesn't match the package's expectations of itself, there are no unit tests, and the only documentation is within the code itself. I don't really expect anyone else to use this code... yet. All of those things will be addressed at some point.
+This is not a complete project. There are no unit tests, and the only documentation is within the code itself. I don't really expect anyone else to use this code... yet. All of those things will be addressed at some point.
 
 That said, the code _is_ being used. This started with work I did while at Caxiam (and I obtained a comprehensive license to continue with the code) so here and there are references to Caxiam that I am slowly replacing. I've done quite a bit of refactoring since then and expect to do more.
 
