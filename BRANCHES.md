@@ -4,5 +4,5 @@
 
 ### release/0.1
 
-First public release.
+First public release. Possibly broken.
 
