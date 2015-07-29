@@ -17,7 +17,7 @@ setup(
 	version='0.1',
 	description='A lightweight debugging display for Django.',
 	long_description='',
-	url='https://github.com/damienjones/sculpt.debug',
+	url='https://github.com/damienjones/sculpt-debug',
 	author='Damien M. Jones',
 	author_email='damien@codesculpture.com',
 	license='LGPLv2',
@@ -30,7 +30,9 @@ setup(
 	], 
 	keywords='',
 	packages=find_packages(),
-	# install_requires=[],
+	install_requires=[
+		'sculpt.common>=0.2'
+	],
 	# package_data={},
 	# data_files=[],
 	# entry_points={},
