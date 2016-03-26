@@ -47,7 +47,7 @@ class SculptDebugMiddleware(object):
             for i in range(len(connection.queries)):
                 q = connection.queries[i]
 
-                print '%4d %8s %s' % (i+1, q['time'], q['sql'])
+                print '%4d %8s %s' % (i+1, q['time'], q['sql'].encode('ascii', 'backslashreplace'))
                 print '--------'
 
             print '====================='
