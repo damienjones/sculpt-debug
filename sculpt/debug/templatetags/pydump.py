@@ -13,6 +13,7 @@ except ImportError:
     from sculpt.debug.django_stub import escape, settings
     template = None
     mark_safe = lambda x: x  # a no-op function
+import datetime
 import decimal
 import inspect
 try:
@@ -167,6 +168,17 @@ def pydump_core(value, field_name, fragments, seen_names, seen_objects, trap_exc
             fragments.append(u'<span class="sc_dbg_decimal" title="Decimal">%s</span>' % str(value))
         elif isinstance(value, complex):
             fragments.append(u'<span class="sc_dbg_complex" title="complex">%s</span>' % str(value))
+        # datetime types; technically objects as they
+        # have IDs
+        elif isinstance(value, datetime.datetime):
+            fragments.append(u'<span class="sc_dbg_datetime" title="datetime id:0x%x">%s</span>' % (id(value), value.isoformat()))
+        elif isinstance(value, datetime.date):
+            fragments.append(u'<span class="sc_dbg_datetime" title="date id:0x%x">%s</span>' % (id(value), value.isoformat()))
+        elif isinstance(value, datetime.time):
+            fragments.append(u'<span class="sc_dbg_datetime" title="time id:0x%x">%s</span>' % (id(value), value.strftime('%H:%M:%S.%f')))
+        elif isinstance(value, datetime.timedelta):
+            fragments.append(u'<span class="sc_dbg_datetime" title="timedelta id:0x%x">%s</span>' % (id(value), str(value)))
+        # string types
         elif isinstance(value, (str, unicode)):
             # for either string type, it's possible that the data might be
             # JSON; if so, unpack it and show it

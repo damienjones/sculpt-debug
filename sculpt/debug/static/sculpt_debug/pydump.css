@@ -14,6 +14,7 @@
 
 /* special */
 .sc_dbg_empty	{ color: #666666;	background-color: #ffffff;	}
+.sc_dbg_datetime { color: #804000;	background-color: #ffffff;	}
 .sc_dbg_other	{ color: #008080;	background-color: #ffff00;	}
 .sc_dbg_object	{ color: #000000;	background-color: #ffffff;	}
 .sc_dbg_title	{ color: #000000;	background-color: #ffffff;	}
